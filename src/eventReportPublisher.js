@@ -9,8 +9,13 @@ class EventReportPublisher {
   publish () {
     console.log(this.report);
     //const hoge = new sheet();
-    const hoge = sheet.createSpreadsheet();
-    console.log(hoge);
+    sheet.createSpreadsheet()
+    .then(file => {
+      console.log(`dekitayo:${file.id}`);
+    })
+    .catch(err => {
+      console.log(`shippaidayo:${err}`);
+    });
   }
 }
 
