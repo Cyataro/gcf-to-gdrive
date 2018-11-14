@@ -1,39 +1,46 @@
 'use strict';
 
-let fs = require('fs');
-let readline = require('readline');
-let googleAuth = require('google-auth-library');
-
-let SCOPES = ['https://www.googleapis.com/auth/spreadsheets']; //you can add more scopes according to your permission need. But in case you chang the scope, make sure you deleted the ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json file
-const TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE) + '/.credentials/'; //the directory where we're going to save the token
-const TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json'; //the file which will contain the token
+const fs = require('fs');
+const readline = require('readline');
+//const {googleAuth} = require('google-auth-library');
+const {OAuth2Client} = require('google-auth-library');
+const SCOPES = [
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/spreadsheets',
+];
+const TOKEN_DIR = './'; //the directory where we're going to save the token
+const TOKEN_PATH = TOKEN_DIR + 'token.json'; //the file which will contain the token
 
 class Authentication {
   authenticate(){
     return new Promise((resolve, reject)=>{
-      let credentials = this.getClientSecret();
+      const credentials = JSON.parse(this.getClientSecret());
       let authorizePromise = this.authorize(credentials);
-      authorizePromise.then(resolve, reject);
+      authorizePromise.then(resolve, reject).catch(err => console.log(err));
     });
   }
   getClientSecret(){
-    return require('./credentials.json');
+    return fs.readFileSync('./credentials.json','utf8');
   }
   authorize(credentials) {
     var clientSecret = credentials.installed.client_secret;
     var clientId = credentials.installed.client_id;
     var redirectUrl = credentials.installed.redirect_uris[0];
-    var auth = new googleAuth();
-    var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+//    var auth = new googleAuth();
+    var oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUrl);
 
     return new Promise((resolve, reject)=>{
       // Check if we have previously stored a token.
       fs.readFile(TOKEN_PATH, (err, token) => {
         if (err) {
-          this.getNewToken(oauth2Client).then((oauth2ClientNew)=>{
-            resolve(oauth2ClientNew);
+          this.getNewToken(oauth2Client).then((oauth2ClientNew) => {
+            return resolve(oauth2ClientNew);
           }, (err)=>{
             reject(err);
+          })
+          .catch(err => {
+            console.log(err);
           });
         } else {
           oauth2Client.credentials = JSON.parse(token);
@@ -60,6 +67,7 @@ class Authentication {
             console.log('Error while trying to retrieve access token', err);
             reject(err);
           }
+          console.log('get new token!!')
           oauth2Client.credentials = token;
           this.storeToken(token);
           resolve(oauth2Client);
